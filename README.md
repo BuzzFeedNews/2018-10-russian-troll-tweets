@@ -4,7 +4,7 @@ Data and [R](https://www.r-project.org/) code underlying the orginal analysis re
 
 ## Methodology/Code
 
-The code to repeat the analysis can be found online [here](https://buzzfeednews.github.io/2018-20-russiane-twitter-trolls), and in the R Markdown document index.Rmd.
+The code to repeat the analysis can be found online [here](https://buzzfeednews.github.io/2018-10-russian-twitter-trolls), and in the R Markdown document index.Rmd.
 
 
 ## Questions/Feedback
