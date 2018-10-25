@@ -6,7 +6,7 @@ library(knitr)
 opts_chunk$set(out.width="900px", dpi=300)
 ```
 
-Data and [R](https://www.r-project.org/) code for the analysis supporting this [Oct. 25, 2018 BuzzFeed News post](https://www.buzzfeednews.com/article/peteraldhous/russia-online-trolls-engagement-strategy) analyzing engagement with English-language tweets from the Kremlin-backed Internet Research Agency. Supporting files are in [this GitHub repository](https://github.com/BuzzFeedNews/2018-10-russian-troll-tweets).
+Data and [R](https://www.r-project.org/) code for the analysis supporting this [Oct. 25, 2018 BuzzFeed News post](https://www.buzzfeednews.com/article/peteraldhous/russia-online-trolls-viral-engagement-strategy) analyzing engagement with English-language tweets from the Kremlin-backed Internet Research Agency. Supporting files are in [this GitHub repository](https://github.com/BuzzFeedNews/2018-10-russian-troll-tweets).
 
 ### Data
 
