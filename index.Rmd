@@ -6,7 +6,7 @@ library(knitr)
 opts_chunk$set(out.width="900px", dpi=300)
 ```
 
-Data and [R](https://www.r-project.org/) code for the analysis supporting this [Oct. 25, 2018 BuzzFeed News post](https://www.buzzfeednews.com/article/peteraldhous/russia-online-trolls-viral-engagement-strategy) analyzing engagement with English-language tweets from the Kremlin-backed Internet Research Agency. Supporting files are in [this GitHub repository](https://github.com/BuzzFeedNews/2018-10-russian-troll-tweets).
+Data and [R](https://www.r-project.org/) code for the analysis supporting this [Oct. 25, 2018 BuzzFeed News post](https://www.buzzfeednews.com/article/peteraldhous/russia-online-trolls-viral-strategy) analyzing engagement with English-language tweets from the Kremlin-backed Internet Research Agency. Supporting files are in [this GitHub repository](https://github.com/BuzzFeedNews/2018-10-russian-troll-tweets).
 
 ### Data
 
@@ -254,11 +254,9 @@ datatable(top_pc_accounts, colnames = c("Display name","Screen name","Account ca
 ### How many tweets were retweets of other Russian troll tweets?
 
 ```{r, warning=FALSE, message=FALSE}
-retweet_troll_ids <- intersect(unique(en_ira_tweets$retweet_userid),unique(en_ira_tweets$userid))
-
 en_ira_tweets %>%
-  filter(is_retweet == "true" & retweet_userid %in% retweet_troll_ids) %>%
-  count()
+  filter(retweet_userid %in% unique(userid)) %>%
+  tally()
 ```
 
 Just 137,653 of the 3.26 million tweets were retweets of other known Russian trolls.
