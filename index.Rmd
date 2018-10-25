@@ -1,0 +1,283 @@
+
+# How Russia’s Twitter Army Trolled Unsuspecting American Voters
+
+```{r setup, include=FALSE}
+library(knitr)
+opts_chunk$set(out.width="900px", dpi=300)
+```
+
+Data and [R](https://www.r-project.org/) code for the analysis supporting this [Oct. 23, 2018 BuzzFeed News post](https://www.buzzfeednews.com/article/peteraldhous/russia-online-trolls-engagement-strategy) analyzing engagement with English-language tweets from the Kremlin-backed Internet Research Agency. Supporting files are in [this GitHub repository](https://github.com/BuzzFeedNews/2018-10-russian-troll-tweets).
+
+### Data
+
+On Oct. 16, 2018 Twitter [released a trove of data](https://about.twitter.com/en_us/values/elections-integrity.html#data) on accounts it had flagged as Russian trolls and shut down. Data on most of the 3.26 million English-language tweets from these accounts was [released in July](https://fivethirtyeight.com/features/why-were-sharing-3-million-russian-troll-tweets/) through FiveThirtyEight by researchers Darren Linvill and Patrick Warren of Clemson University in South Carolina. They also categorized the trolls into account categories including `LeftTroll`,  and `RightTroll`. Many of the Left Trolls posed as liberal supporters of Black Lives Matter, tweeting about aspects of black culture as well as politics. Right Trolls posed as supporters of Donald Trump.
+
+Run the script `data_prep.R` to download both datasets, filter the Twitter data for English langauge tweets only, join the Clemson account categories to the Twitter data, and save as the file `en_ira_tweets.csv` in the `data` folder.
+
+####This file will contain the following fields:
+
+#####From the Twitter data:
+
+- `tweetid` Tweet identification number.
+- `userid` User identification number (anonymized for users which had fewer than 5,000 followers at the time of suspension). 
+- `user_display_name` Name of the user (encoded as userid for anonymized users).
+- `user_screen_name` Twitter handle of the user (encoded as userid for anonymized users)
+- `user_reported_location` User's self-reported location^1^.
+- `user_profile_description` User's profile description^1^.
+- `user_profile_url` User's profile URL^1^
+- `follower_count` Number of accounts following the user^1^.
+- `following_count` Number of accounts followed by the user^1^.
+- `account_creation_date` Date of user account creation.
+- `account_language` Language of the account as chosen by the user.
+- `tweet_language` Language of the tweet.
+- `tweet_text` Yext of the tweet (mentions of anonymized accounts have been replaced with anonymized userid).
+- `tweet_time` Time when the tweet was published (UTC).
+- `tweet_client_name` Name of the client app used to publish the tweet.
+- `in_reply_to_tweetid` Tweetid of the original tweet that this tweet is in reply to (for replies only).
+- `in_reply_to_userid` Userid of the original tweet that this tweet is in reply to (for replies only).
+- `quoted_tweet_tweetid` Tweetid of the original tweet that this tweet is quoting (for quotes only).
+- `is_retweet` Is this tweet a retweet? "True" or "False.
+- `retweet_userid` For retweets, the userid who authored the original tweet.
+- `retweet_tweetid` For retweets, the tweetid of the original tweet.
+- `latitude` Geolocated latitude, if available. 
+- `longitude` Geolocated longitude, if available. 
+- `quote_count` Number of tweets quoting this tweet.
+- `reply_count` Number of tweets replying to this tweet.
+- `like_count` Number of likes that this tweet received^2^.
+- `retweet_count` Number of retweets that this tweet received^2^.
+- `hashtags` a list of hashtags used in this tweet
+- `urls` List of urls used in this tweet.
+- `user_mentions` List of userids who are mentioned in this tweet (includes anonymized userids).
+- `poll_choices` If a tweet included a poll, this field displays the poll choices separated by "|".
+
+#####From the Clemson data:
+
+- `account_category` "LeftTroll","RightTroll","NewsFeed","HashtagGamer","NonEnglish","Fearmonger","Unknown". See Linvill and Warren's [research paper](http://pwarren.people.clemson.edu/Linvill_Warren_TrollFactory.pdf) for definitions.
+
+#####Notes:
+
+^1^ At the time of account suspension.
+
+^2^ These engagement counts exclude engagements from userssuspended, deleted or otherwise sanctioned by Twitter at the time of the data release.
+
+### Setting up
+
+Load required packages and tweets data; extract date elements from timestamps.
+
+```{r, results="hide", warning=FALSE, message=FALSE}
+# load required packages
+library(readr)
+library(dplyr)
+library(lubridate)
+library(tidyr)
+library(ggplot2)
+library(scales)
+library(DT)
+
+en_ira_tweets <- read_csv("data/en_ira_tweets.csv", col_types = cols(tweetid = col_character())) %>%
+   mutate(tweet_date = as.Date(tweet_time),
+         tweet_month = month(tweet_time),
+         tweet_year = year(tweet_time))
+```
+
+### Tweets per month, by account category
+
+```{r, results="hide", warning=FALSE, message=FALSE}
+tweets_category_month <- en_ira_tweets %>%
+  group_by(tweet_year,tweet_month,account_category) %>%
+  count() %>%
+  filter(tweet_year >= 2014) %>% # there were very few tweets in earlier years
+  mutate(date = as.Date(paste0(tweet_year,"-",tweet_month,"-15"))) # allows plotting in middle of month on date axis
+
+ggplot(tweets_category_month, aes(x = date, y = n, color = account_category)) + 
+  geom_point() +
+  geom_line() +
+  xlab("") +
+  ylab("Tweets") +
+  geom_hline(yintercept = 0, size = 0.3) +
+  geom_vline(xintercept = as.numeric(as.Date("2016-11-08")), linetype = "dotted") +
+  annotate("text", 
+           x = as.Date("2016-07-01"), 
+           y = 160000, 
+           label = "Election",
+           family = "ProximaNova-Semibold",
+           size = 4.5) +
+  theme_minimal(base_size = 16, base_family = "ProximaNova-Semibold") +
+  scale_y_continuous(labels = comma) +
+  scale_color_brewer(palette = "Set1", name = "") +
+  theme(legend.position = "top")
+```
+
+### Tweet output and retweet counts by account category
+
+<br>
+
+#### Overall
+
+```{r, warning=FALSE, message=FALSE}
+retweets_category <- en_ira_tweets %>%
+  group_by(account_category) %>%
+  summarize(tweets = n(),
+            retweets = sum(retweet_count, na.rm = TRUE),
+            mean_retweets = round(mean(retweet_count, na.rm=TRUE))) %>%
+  arrange(-retweets) %>%
+  mutate(percent = round(retweets/sum(retweets)*100,2),
+         retweets = format(retweets, big.mark = ","),
+         tweets = format(tweets, big.mark = ","))
+
+datatable(retweets_category, colnames = c("Account category", "Tweets", "Retweet count", "Avg. per tweet", "% of total"))
+```
+<br>
+
+#### In the year before the 2016 election
+
+```{r, warning=FALSE, message=FALSE}
+pre_election <- en_ira_tweets %>%
+  filter(tweet_date >= "2015-11-08" & tweet_date <= "2016-11-07")
+
+retweets_category_pre <- pre_election %>%
+  group_by(account_category) %>%
+  summarize(tweets = n(),
+            retweets = sum(retweet_count, na.rm = TRUE),
+            mean_retweets = round(mean(retweet_count, na.rm=TRUE))) %>%
+  arrange(-retweets) %>%
+  mutate(percent = round(retweets/sum(retweets)*100,2),
+         retweets = format(retweets, big.mark = ","),
+         tweets = format(tweets, big.mark = ","))
+
+datatable(retweets_category_pre, colnames = c("Account category", "Tweets", "Retweet count", "Avg. per tweet", "% of total"))
+```
+
+<br>
+
+#### In the year after the 2016 election
+
+```{r, warning=FALSE, message=FALSE}
+post_election <- en_ira_tweets %>%
+  filter(tweet_date >= "2016-11-09" & tweet_date <= "2017-11-08")
+
+retweets_category_post <- post_election %>%
+  group_by(account_category) %>%
+  summarize(tweets = n(),
+            retweets = sum(retweet_count, na.rm = TRUE),
+            mean_retweets = round(mean(retweet_count, na.rm=TRUE))) %>%
+  arrange(-retweets) %>%
+  mutate(percent = round(retweets/sum(retweets)*100,2),
+         retweets = format(retweets, big.mark = ","),
+         tweets = format(tweets, big.mark = ","))
+
+datatable(retweets_category_post, colnames = c("Account category", "Tweets", "Retweet count", "Avg. per tweet", "% of total"))
+```
+
+<br>
+
+### Tweet output and retweet counts by account
+
+```{r, warning=FALSE, message=FALSE}
+retweets_account <- en_ira_tweets %>%
+  group_by(userid,user_display_name,user_screen_name,account_category,user_profile_description) %>%
+  summarize(followers = max(follower_count, na.rm = TRUE),
+            tweets = n(),
+            retweets = sum(retweet_count, na.rm = TRUE),
+            mean_retweets = round(mean(retweet_count, na.rm = TRUE))) %>%
+  arrange(-retweets)  %>%
+  ungroup() %>%
+  mutate(percent = round(retweets/sum(retweets)*100,2),
+         followers = format(followers, big.mark = ","),
+         tweets = format(tweets, big.mark = ","),
+         retweets = format(retweets, big.mark = ",")) %>%
+  select(-userid)
+
+datatable(retweets_account, colnames = c("Display name", "Screen name", "Account category", "Profile description", "Followers", "Tweets", "Retweet count", "Avg. per tweet", "% of total"))
+
+```
+
+<br>
+
+### Top 1,000 tweets by retweet count
+
+```{r, warning=FALSE, message=FALSE}
+top_tweets <- en_ira_tweets %>%
+  arrange(-retweet_count) %>%
+  head(1000) %>%
+  select(user_display_name,user_screen_name,account_category,user_profile_description,tweet_text,tweet_date,retweet_count) %>%
+  mutate(retweet_count = format(retweet_count, big.mark = ","))
+
+datatable(top_tweets, colnames = c("Display name", "Screen name", "Account category", "Profile description", "Tweet text", "Retweet count", "Date"))
+```
+
+<br>
+
+### What were the retweet counts needed to get into the top 1 percent and 5 percent of tweets?
+
+```{r, warning=FALSE, message=FALSE}
+quantile(en_ira_tweets$retweet_count,c(0.95, 0.99), na.rm = TRUE)
+```
+
+Five percent of tweets were retweeted 3 or more times; one percent of tweets were retweeted 79 times or more.
+
+<br>
+
+### Number of tweets for each account category in the top 1 percent for retweets
+
+```{r, warning=FALSE, message=FALSE}
+top_pc_category <- en_ira_tweets %>%
+  filter(retweet_count >= quantile(retweet_count, 0.99, na.rm = TRUE)) %>%
+  group_by(account_category) %>%
+  count() %>%
+  arrange(-n) %>%
+  mutate(n = format(n, big.mark = ","))
+
+datatable(top_pc_category, colnames = c("Account category","Tweets in top 1%"))
+```
+
+<br>
+
+### Top accounts, measured by number of tweets in the top 1 percent for retweets
+```{r, warning=FALSE, message=FALSE}
+top_pc_accounts <- en_ira_tweets %>%
+  filter(retweet_count >= quantile(retweet_count, 0.99, na.rm = TRUE)) %>%
+  group_by(user_display_name, user_screen_name, account_category, user_profile_description, account_category) %>%
+  count() %>%
+  arrange(-n) %>%
+  head(100) %>%
+  mutate(n = format(n, big.mark = ","))
+
+datatable(top_pc_accounts, colnames = c("Display name","Screen name","Account category","Profile description","Tweets in top 1%"))
+```
+
+<br>
+
+### How many tweets, by account category, were retweets of other Russian troll tweets?
+
+```{r, warning=FALSE, message=FALSE}
+retweet_troll_ids <- intersect(unique(en_ira_tweets$retweet_userid),unique(en_ira_tweets$userid))
+
+en_ira_tweets %>%
+  filter(is_retweet == "true" & retweet_userid %in% retweet_troll_ids) %>%
+  count()
+```
+
+Just 137,653 of the 3.26 million tweets were retweets of other known Russian trolls.
+
+<br>
+
+### The birth and death of @TEN_GOP and related accounts
+
+```{r, warning=FALSE, message=FALSE}
+ten_gop_related <- en_ira_tweets %>%
+  filter(grepl("_gop", user_screen_name, ignore.case = TRUE)) %>%
+  group_by(user_display_name,user_screen_name,user_profile_description,account_creation_date) %>%
+  summarize(last_tweeted = max(tweet_date))
+
+datatable(ten_gop_related, colnames = c("Display name","Screen name","Profile description","Account created","Last tweeted"))
+```
+
+
+
+
+
+
+
+
+
