@@ -4,12 +4,12 @@ library(readr)
 library(dplyr)
 library(tidyr)
 
-# download Twitter IRA tweet data
-download.file("https://storage.googleapis.com/twitter-election-integrity/hashed/ira/ira_tweets_csv_hashed.zip", destfile="ira_tweets.zip")
-unzip("ira_tweets.zip", exdir = "data")
+# download and unzip Twitter IRA tweet data, manually or using the commented out code below
+# download.file("https://storage.googleapis.com/twitter-election-integrity/hashed/ira/ira_tweets_csv_hashed.zip", destfile="ira_tweets.zip")
+# unzip("ira_tweets.zip", exdir = "data")
 
 # load, filter for English language tweets, create field for join to Clemson data
-en_ira_tweets <- read_csv("data/ira_tweets_csv_hashed.csv", col_types = cols(tweetid=col_character())) %>%
+en_ira_tweets <- read_csv("data/ira_tweets_csv_hashed.csv", col_types = cols(tweetid = col_character())) %>%
   filter(tweet_language == "en") %>%
   mutate(handle = tolower(user_screen_name))
 
@@ -30,7 +30,7 @@ rm(tmp,n)
 
 # joins and cleanup
 clemson_tweetids <- clemson %>%
-  select(tweetid,account_category) %>%
+  select(tweet_id,account_category) %>%
   rename(tweetid = tweet_id) %>%
   unique()
 
@@ -62,5 +62,5 @@ en_ira_tweets <- en_ira_tweets %>%
 
 
 # write data to file
-write_csv(test, "data/en_ira_tweets.csv", na="")
+write_csv(en_ira_tweets, "data/en_ira_tweets.csv", na="")
 

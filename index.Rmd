@@ -6,22 +6,22 @@ library(knitr)
 opts_chunk$set(out.width="900px", dpi=300)
 ```
 
-Data and [R](https://www.r-project.org/) code for the analysis supporting this [Oct. 23, 2018 BuzzFeed News post](https://www.buzzfeednews.com/article/peteraldhous/russia-online-trolls-engagement-strategy) analyzing engagement with English-language tweets from the Kremlin-backed Internet Research Agency. Supporting files are in [this GitHub repository](https://github.com/BuzzFeedNews/2018-10-russian-troll-tweets).
+Data and [R](https://www.r-project.org/) code for the analysis supporting this [Oct. 25, 2018 BuzzFeed News post](https://www.buzzfeednews.com/article/peteraldhous/russia-online-trolls-engagement-strategy) analyzing engagement with English-language tweets from the Kremlin-backed Internet Research Agency. Supporting files are in [this GitHub repository](https://github.com/BuzzFeedNews/2018-10-russian-troll-tweets).
 
 ### Data
 
 On Oct. 16, 2018 Twitter [released a trove of data](https://about.twitter.com/en_us/values/elections-integrity.html#data) on accounts it had flagged as Russian trolls and shut down. Data on most of the 3.26 million English-language tweets from these accounts was [released in July](https://fivethirtyeight.com/features/why-were-sharing-3-million-russian-troll-tweets/) through FiveThirtyEight by researchers Darren Linvill and Patrick Warren of Clemson University in South Carolina. They also categorized the trolls into account categories including `LeftTroll`,  and `RightTroll`. Many of the Left Trolls posed as liberal supporters of Black Lives Matter, tweeting about aspects of black culture as well as politics. Right Trolls posed as supporters of Donald Trump.
 
-Run the script `data_prep.R` to download both datasets, filter the Twitter data for English langauge tweets only, join the Clemson account categories to the Twitter data, and save as the file `en_ira_tweets.csv` in the `data` folder.
+Download the Twitter data on Internet research agency tweets from [here](https://storage.googleapis.com/twitter-election-integrity/hashed/ira/ira_tweets_csv_hashed.zip), unzip, and place the file `ira_tweets_csv_hased.csv` in the `data` folder. Run the script `data_prep.R` to download the Clemson data, filter the Twitter data for English langauge tweets only, join the Clemson account categories to the Twitter data, and save as the file `en_ira_tweets.csv` in the `data` folder.
 
-####This file will contain the following fields:
+#### This file will contain the following fields:
 
-#####From the Twitter data:
+##### From the Twitter data:
 
 - `tweetid` Tweet identification number.
 - `userid` User identification number (anonymized for users which had fewer than 5,000 followers at the time of suspension). 
-- `user_display_name` Name of the user (encoded as userid for anonymized users).
-- `user_screen_name` Twitter handle of the user (encoded as userid for anonymized users)
+- `user_display_name` Name of the user (encoded as `userid` for anonymized users).
+- `user_screen_name` Twitter handle of the user (encoded as `userid` for anonymized users).
 - `user_reported_location` User's self-reported location^1^.
 - `user_profile_description` User's profile description^1^.
 - `user_profile_url` User's profile URL^1^
@@ -30,15 +30,15 @@ Run the script `data_prep.R` to download both datasets, filter the Twitter data 
 - `account_creation_date` Date of user account creation.
 - `account_language` Language of the account as chosen by the user.
 - `tweet_language` Language of the tweet.
-- `tweet_text` Yext of the tweet (mentions of anonymized accounts have been replaced with anonymized userid).
+- `tweet_text` Text of the tweet (mentions of anonymized accounts have been replaced with anonymized userid).
 - `tweet_time` Time when the tweet was published (UTC).
 - `tweet_client_name` Name of the client app used to publish the tweet.
-- `in_reply_to_tweetid` Tweetid of the original tweet that this tweet is in reply to (for replies only).
-- `in_reply_to_userid` Userid of the original tweet that this tweet is in reply to (for replies only).
-- `quoted_tweet_tweetid` Tweetid of the original tweet that this tweet is quoting (for quotes only).
-- `is_retweet` Is this tweet a retweet? "True" or "False.
-- `retweet_userid` For retweets, the userid who authored the original tweet.
-- `retweet_tweetid` For retweets, the tweetid of the original tweet.
+- `in_reply_to_tweetid` The `tweetid` of the original tweet that this tweet is in reply to (for replies only).
+- `in_reply_to_userid` The `userid` of the original tweet that this tweet is in reply to (for replies only).
+- `quoted_tweet_tweetid` The `tweetid` of the original tweet that this tweet is quoting (for quotes only).
+- `is_retweet` Is this tweet a retweet ("true" or "false")? 
+- `retweet_userid` For retweets, `userid` that authored the original tweet.
+- `retweet_tweetid` For retweets, `tweetid` of the original tweet.
 - `latitude` Geolocated latitude, if available. 
 - `longitude` Geolocated longitude, if available. 
 - `quote_count` Number of tweets quoting this tweet.
@@ -47,18 +47,18 @@ Run the script `data_prep.R` to download both datasets, filter the Twitter data 
 - `retweet_count` Number of retweets that this tweet received^2^.
 - `hashtags` a list of hashtags used in this tweet
 - `urls` List of urls used in this tweet.
-- `user_mentions` List of userids who are mentioned in this tweet (includes anonymized userids).
+- `user_mentions` List of `userids` mentioned in this tweet (includes anonymized `userids`).
 - `poll_choices` If a tweet included a poll, this field displays the poll choices separated by "|".
 
-#####From the Clemson data:
+##### From the Clemson data:
 
 - `account_category` "LeftTroll","RightTroll","NewsFeed","HashtagGamer","NonEnglish","Fearmonger","Unknown". See Linvill and Warren's [research paper](http://pwarren.people.clemson.edu/Linvill_Warren_TrollFactory.pdf) for definitions.
 
-#####Notes:
+##### Notes:
 
 ^1^ At the time of account suspension.
 
-^2^ These engagement counts exclude engagements from userssuspended, deleted or otherwise sanctioned by Twitter at the time of the data release.
+^2^ These engagement counts exclude engagements from users suspended, deleted, or otherwise sanctioned by Twitter at the time of the data release.
 
 ### Setting up
 
@@ -69,15 +69,18 @@ Load required packages and tweets data; extract date elements from timestamps.
 library(readr)
 library(dplyr)
 library(lubridate)
-library(tidyr)
 library(ggplot2)
 library(scales)
 library(DT)
 
+# Set default timezone for session to UTC
+Sys.setenv(TZ = "UTC")
+
+# load data, extract date elements from timestamps
 en_ira_tweets <- read_csv("data/en_ira_tweets.csv", col_types = cols(tweetid = col_character())) %>%
    mutate(tweet_date = as.Date(tweet_time),
-         tweet_month = month(tweet_time),
-         tweet_year = year(tweet_time))
+          tweet_month = month(tweet_time),
+          tweet_year = year(tweet_time))
 ```
 
 ### Tweets per month, by account category
@@ -100,9 +103,9 @@ ggplot(tweets_category_month, aes(x = date, y = n, color = account_category)) +
            x = as.Date("2016-07-01"), 
            y = 160000, 
            label = "Election",
-           family = "ProximaNova-Semibold",
+           family = "BasierSquare-SemiBold",
            size = 4.5) +
-  theme_minimal(base_size = 16, base_family = "ProximaNova-Semibold") +
+  theme_minimal(base_size = 16, base_family = "BasierSquare-SemiBold") +
   scale_y_continuous(labels = comma) +
   scale_color_brewer(palette = "Set1", name = "") +
   theme(legend.position = "top")
@@ -203,7 +206,7 @@ top_tweets <- en_ira_tweets %>%
   select(user_display_name,user_screen_name,account_category,user_profile_description,tweet_text,tweet_date,retweet_count) %>%
   mutate(retweet_count = format(retweet_count, big.mark = ","))
 
-datatable(top_tweets, colnames = c("Display name", "Screen name", "Account category", "Profile description", "Tweet text", "Retweet count", "Date"))
+datatable(top_tweets, colnames = c("Display name", "Screen name", "Account category", "Profile description", "Tweet text", "Date",  "Retweet count"))
 ```
 
 <br>
@@ -211,7 +214,7 @@ datatable(top_tweets, colnames = c("Display name", "Screen name", "Account categ
 ### What were the retweet counts needed to get into the top 1 percent and 5 percent of tweets?
 
 ```{r, warning=FALSE, message=FALSE}
-quantile(en_ira_tweets$retweet_count,c(0.95, 0.99), na.rm = TRUE)
+quantile(en_ira_tweets$retweet_count, c(0.95, 0.99), na.rm = TRUE)
 ```
 
 Five percent of tweets were retweeted 3 or more times; one percent of tweets were retweeted 79 times or more.
@@ -248,7 +251,7 @@ datatable(top_pc_accounts, colnames = c("Display name","Screen name","Account ca
 
 <br>
 
-### How many tweets, by account category, were retweets of other Russian troll tweets?
+### How many tweets were retweets of other Russian troll tweets?
 
 ```{r, warning=FALSE, message=FALSE}
 retweet_troll_ids <- intersect(unique(en_ira_tweets$retweet_userid),unique(en_ira_tweets$userid))
