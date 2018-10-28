@@ -1,5 +1,5 @@
 
-# How Russia’s Twitter Army Trolled Unsuspecting American Voters
+# How Russia’s Online Trolls Engaged Unsuspecting American Voters — And Sometimes Duped The Media
 
 ```{r setup, include=FALSE}
 library(knitr)

@@ -1,4 +1,4 @@
-# How Russia’s Twitter Army Trolled Unsuspecting American Voters
+# How Russia’s Online Trolls Engaged Unsuspecting American Voters — And Sometimes Duped The Media
 
 Data and [R](https://www.r-project.org/) code underlying the orginal analysis reported in this Oct. 25, 2018 [BuzzFeed News article](https://www.buzzfeednews.com/article/peteraldhous/russia-online-trolls-viral-strategy) on the success of Russian online trolls in disseminating their content. The article also describes findings from a study conducted by Microsoft Research.
 
